@@ -1,0 +1,58 @@
+name: CICD node-url-shorterner
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Set SHORT_SHA as tag
+      - name: Add SHORT_SHA env 
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+
+      # Access to Docker Registry
+      - name: Login to Docker Registry
+        uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
+        with:
+          registry: docker.io
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      # Clone Code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Configure APP
+      - name: Configure APP
+        run: |
+          sed -i 's|BASE_URL|${{ vars.BASE_URL }}|g' api/controllers/UrlController.js
+          sed -i 's|DATABASE_HOST|${{ vars.DATABASE_HOST }}|g' config/env/development.js
+          sed -i 's|DATABASE_NAME|${{ vars.DATABASE_NAME }}|g' config/env/development.js
+          sed -i 's|DATABASE_USERNAME|${{ vars.DATABASE_USERNAME }}|g' config/env/development.js
+          sed -i 's|DATABASE_PASSWORD|${{ vars.DATABASE_PASSWORD }}|g' config/env/development.js
+
+      # Build Image
+      - name: Build the image
+        run: docker build . --file Dockerfile --tag ${{ vars.DOCKER_USERNAME }}/${{ vars.APP_NAME }}:${{ env.SHORT_SHA }}
+
+      # Push Image
+      - name: Push the image
+        run: docker push ${{ vars.DOCKER_USERNAME }}/${{ vars.APP_NAME }}:${{ env.SHORT_SHA }}
+
+      # Deploy Image
+      - name: Deploy to Instance
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd /home/ubuntu/project3
+            sed -i '8s|.*|    image: ${{ vars.DOCKER_USERNAME }}/${{ vars.APP_NAME }}:${{ env.SHORT_SHA }}|' docker-compose.yml
+            docker-compose up -d --force-recreate --no-deps app
+            docker ps -a
