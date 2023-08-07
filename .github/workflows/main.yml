@@ -52,7 +52,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            cd /home/ubuntu/project4
+            cd /home/ubuntu/project3
             sed -i '8s|.*|    image: ${{ vars.DOCKER_USERNAME }}/${{ vars.APP_NAME }}:${{ env.SHORT_SHA }}|' docker-compose.yml
             docker-compose up -d --force-recreate --no-deps app
             docker ps -a
