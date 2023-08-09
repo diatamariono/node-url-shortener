@@ -1,11 +1,12 @@
-.btn:focus, .btn-shorten:focus{
+.btn:focus,
+.btn-shorten:focus {
   outline: 0 !important;
 }
 
 html,
 body {
   height: 100%;
-  background-color: #03a9f4;
+  background-color: rgb(3, 244, 115);
 }
 
 body {
@@ -68,7 +69,7 @@ body {
   padding-top: 15px;
 }
 
-#link a{
+#link a {
   color: #1A237E;
   font-size: 1.5em;
   margin-right: 20px;
